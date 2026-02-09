@@ -40,11 +40,11 @@ export default function PocketPage() {
         {/* --- Income / Expense Summary --- */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">รวมเงินเข้า ( บาท )</p>
+            <p className="text-xs text-gray-500 mb-1">รวมรายรับ ( บาท )</p>
             <p className="text-lg font-semibold text-green-500">100.00</p>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">รวมเงินออก ( บาท )</p>
+            <p className="text-xs text-gray-500 mb-1">รวมรายจ่าย ( บาท )</p>
             <p className="text-lg font-semibold text-red-400">50.00</p>
           </div>
         </div>
@@ -53,11 +53,11 @@ export default function PocketPage() {
         <div className="grid grid-cols-2 gap-4">
           <button className="bg-white rounded-2xl py-6 flex flex-col items-center justify-center shadow-sm hover:bg-gray-50 transition-all">
             <Plus className="w-6 h-6 text-gray-800 mb-1" />
-            <span className="text-gray-800 font-medium text-sm">ฝากเงิน</span>
+            <span className="text-gray-800 font-medium text-sm">รายรับ</span>
           </button>
           <button className="bg-white rounded-2xl py-6 flex flex-col items-center justify-center shadow-sm hover:bg-gray-50 transition-all">
             <Wallet className="w-6 h-6 text-gray-800 mb-1" />
-            <span className="text-gray-800 font-medium text-sm">ถอนเงิน</span>
+            <span className="text-gray-800 font-medium text-sm">รายจ่าย</span>
           </button>
         </div>
 

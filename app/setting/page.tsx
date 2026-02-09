@@ -19,8 +19,8 @@ export default function SettingPage() {
       <div className="flex-grow">
         <div className="bg-white mx-0 border-y border-gray-100">
           
-          {/* ข้อมูลส่วนบุคคล */}
-          <button className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors border-b border-gray-100">
+          {/* ข้อมูลส่วนบุคคล (เชื่อมไปหน้า Profile) */}
+          <Link href="/profile" className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors border-b border-gray-100">
             <div className="flex items-center space-x-4">
               <div className="p-1">
                 <User className="w-7 h-7 text-gray-800" />
@@ -28,10 +28,10 @@ export default function SettingPage() {
               <span className="text-gray-700 font-medium">ข้อมูลส่วนบุคคล</span>
             </div>
             <ChevronRight className="w-6 h-6 text-gray-400" />
-          </button>
+          </Link>
 
-          {/* เปลี่ยนรหัสผ่าน */}
-          <button className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors border-b border-gray-100">
+          {/* 1. แก้ไขตรงนี้: เปลี่ยน button เป็น Link ไปยังหน้า /change-password */}
+          <Link href="/change-password" className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors border-b border-gray-100">
             <div className="flex items-center space-x-4">
               <div className="p-1">
                 <Lock className="w-7 h-7 text-gray-800" />
@@ -39,7 +39,7 @@ export default function SettingPage() {
               <span className="text-gray-700 font-medium">เปลี่ยนรหัสผ่าน</span>
             </div>
             <ChevronRight className="w-6 h-6 text-gray-400" />
-          </button>
+          </Link>
 
           {/* ออกจากระบบ */}
           <Link href="/login" className="w-full flex items-center p-5 hover:bg-red-50 transition-colors">
