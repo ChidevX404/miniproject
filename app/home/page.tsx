@@ -9,12 +9,12 @@ import { useRouter } from 'next/navigation';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-// กำหนด Type ของข้อมูล Transaction ให้ตรงกัน
+// 1. แก้ไข Type: amount เป็น string เพื่อรองรับเลขยาวๆ
 interface Transaction {
   id: string;
   userId: string;
   title: string;
-  amount: number;
+  amount: string; 
   type: 'income' | 'expense';
   date: string;
   time: string;
@@ -23,14 +23,18 @@ interface Transaction {
 export default function HomePage() {
   const router = useRouter();
   
-  // --- STATE เก็บข้อมูล ---
-  const [balance, setBalance] = useState(0);
-  const [expenseTotal, setExpenseTotal] = useState(0);
+  // --- STATE เก็บข้อมูล (ใช้ BigInt) ---
+  // ใช้ BigInt(0) แทน 0n เพื่อความปลอดภัยในบาง Environment
+  const [balance, setBalance] = useState<bigint>(BigInt(0));
+  const [expenseTotal, setExpenseTotal] = useState<bigint>(BigInt(0));
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [userName, setUserName] = useState('');
 
   // --- LOAD DATA ---
   useEffect(() => {
+    // ป้องกัน Error ตอน render ฝั่ง Server
+    if (typeof window === 'undefined') return;
+
     // 1. เช็คว่า Login หรือยัง
     const userStr = localStorage.getItem('currentUser');
     if (!userStr) {
@@ -46,29 +50,48 @@ export default function HomePage() {
     // 3. กรองเฉพาะของ User คนนี้
     const myData = allData.filter((t: any) => t.userId === currentUser.id);
 
-    // 4. คำนวณยอดเงิน
-    let inc = 0;
-    let exp = 0;
+    // 4. คำนวณยอดเงินด้วย BigInt
+    let inc = BigInt(0);
+    let exp = BigInt(0);
+    
     myData.forEach((t: Transaction) => {
-      if (t.type === 'income') inc += t.amount;
-      else exp += t.amount;
+      // แปลง string เป็น BigInt (ตัดทศนิยมทิ้ง)
+      const amountBigInt = BigInt(t.amount.toString().split('.')[0] || '0');
+      
+      if (t.type === 'income') inc = inc + amountBigInt;
+      else exp = exp + amountBigInt;
     });
 
     setBalance(inc - exp);
     setExpenseTotal(exp);
 
-    // 5. ดึง 2 รายการล่าสุด (เรียงจากหลังไปหน้า)
+    // 5. ดึง 2 รายการล่าสุด
     const recent = [...myData].reverse().slice(0, 2);
     setRecentTransactions(recent);
 
   }, [router]);
 
+  // --- HELPER FUNCTION: จัดรูปแบบเงิน ---
+  const formatMoney = (amount: bigint | string) => {
+    try {
+        const val = typeof amount === 'string' ? BigInt(amount.split('.')[0]) : amount;
+        return val.toLocaleString();
+    } catch (e) {
+        return amount.toString();
+    }
+  };
+
   // --- CHART CONFIG ---
+  // หมายเหตุ: Chart.js ต้องการ number เท่านั้น เราจึงต้องแปลง BigInt กลับเป็น number
+  // ถ้าเลขเยอะมากๆ กราฟอาจจะไม่แม่นยำ 100% แต่ก็ดีกว่า Error
+  const balanceNumber = Number(balance); 
+  const expenseNumber = Number(expenseTotal);
+
   const data = {
     labels: ['คงเหลือ', 'ใช้ไป'],
     datasets: [
       {
-        data: [balance < 0 ? 0 : balance, expenseTotal], // ป้องกันกราฟ error ถ้ายอดติดลบ
+        data: [balanceNumber < 0 ? 0 : balanceNumber, expenseNumber], 
         backgroundColor: ['#22c55e', '#ef4444'], // เขียว / แดง
         borderWidth: 0,
       },
@@ -112,9 +135,9 @@ export default function HomePage() {
             
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <p className="text-gray-700 font-medium text-lg">ยอดเงินคงเหลือ</p>
-              {/* แสดงยอดเงินจริง */}
-              <p className={`text-2xl font-bold ${balance < 0 ? 'text-red-500' : 'text-gray-600'}`}>
-                {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {/* 2. แสดงยอดเงินจริง (ใช้ formatMoney และ class truncate เพื่อตัดคำถ้าล้น) */}
+              <p className={`text-2xl font-bold max-w-[200px] truncate text-center ${balance < BigInt(0) ? 'text-red-500' : 'text-gray-600'}`}>
+                {formatMoney(balance)}
               </p>
             </div>
           </div>
@@ -131,22 +154,23 @@ export default function HomePage() {
             ) : (
               recentTransactions.map((item) => (
                 <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 flex items-center justify-between shadow-sm">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-white rounded-2xl">
+                  <div className="flex items-center space-x-4 overflow-hidden">
+                    <div className="p-3 bg-white rounded-2xl flex-shrink-0">
                       {item.type === 'income' ? (
                         <PlusCircle className="w-6 h-6 text-green-500" />
                       ) : (
                         <MinusCircle className="w-6 h-6 text-red-500" />
                       )}
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-800">{item.title}</p>
-                      <p className={`font-semibold ${item.type === 'income' ? 'text-green-500' : 'text-red-400'}`}>
-                        {item.type === 'income' ? '+' : '-'} {item.amount.toLocaleString()} บาท
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-800 truncate">{item.title}</p>
+                      {/* 3. ใช้ formatMoney ตรงนี้ด้วย */}
+                      <p className={`font-semibold truncate ${item.type === 'income' ? 'text-green-500' : 'text-red-400'}`}>
+                        {item.type === 'income' ? '+' : '-'} {formatMoney(item.amount)} บาท
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-400 self-start mt-1">{item.time}</span>
+                  <span className="text-xs text-gray-400 self-start mt-1 flex-shrink-0 ml-2">{item.time}</span>
                 </div>
               ))
             )}

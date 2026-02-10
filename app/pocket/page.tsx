@@ -9,7 +9,7 @@ interface Transaction {
   id: string;
   userId: string;
   title: string;
-  amount: number;
+  amount: string; 
   type: 'income' | 'expense';
   date: string;
   time: string;
@@ -18,9 +18,11 @@ interface Transaction {
 export default function PocketPage() {
   // --- STATE ---
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [balance, setBalance] = useState(0);
-  const [totalIncome, setTotalIncome] = useState(0);
-  const [totalExpense, setTotalExpense] = useState(0);
+  
+  // แก้ไข 1: เปลี่ยน 0n เป็น BigInt(0) เพื่อกัน Error ในบาง Environment
+  const [balance, setBalance] = useState<bigint>(BigInt(0));
+  const [totalIncome, setTotalIncome] = useState<bigint>(BigInt(0));
+  const [totalExpense, setTotalExpense] = useState<bigint>(BigInt(0));
   
   // State สำหรับ Modal (Pop-up)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,26 +36,26 @@ export default function PocketPage() {
   }, []);
 
   const loadData = () => {
-    // 1. ดึงข้อมูล User ปัจจุบัน
+    // ป้องกัน Error กรณีรันฝั่ง Server
+    if (typeof window === 'undefined') return;
+
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const userId = user.id;
-
-    // 2. ดึงข้อมูล Transaction ทั้งหมด
     const allData = JSON.parse(localStorage.getItem('my_transactions') || '[]');
     
-    // 3. กรองเฉพาะของ User นี้
     const myData = allData.filter((t: any) => t.userId === userId);
-    
-    // 4. เรียงลำดับจากใหม่ไปเก่า
     const sortedData = myData.reverse(); 
     setTransactions(sortedData);
 
-    // 5. คำนวณยอดเงิน
-    let inc = 0;
-    let exp = 0;
+    let inc = BigInt(0);
+    let exp = BigInt(0);
+
     sortedData.forEach((t: Transaction) => {
-      if (t.type === 'income') inc += t.amount;
-      else exp += t.amount;
+      // แปลง string เป็น BigInt
+      const amountBigInt = BigInt(t.amount.toString().split('.')[0] || '0');
+      
+      if (t.type === 'income') inc = inc + amountBigInt; // เขียนแบบเต็ม inc = inc + ... เพื่อความชัวร์
+      else exp = exp + amountBigInt;
     });
 
     setTotalIncome(inc);
@@ -69,8 +71,17 @@ export default function PocketPage() {
     setIsModalOpen(true);
   };
 
+  // ฟังก์ชันช่วยตอนพิมพ์ตัวเลข (ป้องกันการพิมพ์ตัวอักษร)
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Regex: ยอมให้พิมพ์แค่ตัวเลข 0-9 เท่านั้น
+    if (/^\d*$/.test(value)) {
+      setInputAmount(value);
+    }
+  };
+
   const handleSave = () => {
-    if (!inputAmount || !inputTitle) return; // กันค่าว่าง
+    if (!inputAmount || !inputTitle) return;
 
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const now = new Date();
@@ -79,20 +90,28 @@ export default function PocketPage() {
       id: Date.now().toString(),
       userId: user.id,
       title: inputTitle,
-      amount: parseFloat(inputAmount),
+      amount: inputAmount,
       type: modalType,
       date: now.toLocaleDateString('th-TH'),
       time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
     };
 
-    // บันทึกลง LocalStorage
     const allData = JSON.parse(localStorage.getItem('my_transactions') || '[]');
     const updatedData = [...allData, newTransaction];
     localStorage.setItem('my_transactions', JSON.stringify(updatedData));
 
-    // โหลดข้อมูลใหม่และปิด Modal
     loadData();
     setIsModalOpen(false);
+  };
+
+  // ฟังก์ชันจัดรูปแบบตัวเลข
+  const formatMoney = (amount: bigint | string) => {
+    try {
+        const val = typeof amount === 'string' ? BigInt(amount.split('.')[0]) : amount;
+        return val.toLocaleString();
+    } catch (e) {
+        return amount.toString();
+    }
   };
 
   return (
@@ -104,8 +123,6 @@ export default function PocketPage() {
           <ChevronLeft className="w-8 h-8 text-gray-800" />
         </Link>
         <h1 className="text-xl font-medium text-gray-800">กระเป๋าออมทรัพย์</h1>
-        
-        {/* แก้ไขตรงนี้: เพิ่ม Link ครอบ icon Profile */}
         <Link href="/profile">
           <div className="bg-white p-2 rounded-full shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
             <User className="w-6 h-6 text-gray-700" />
@@ -127,9 +144,9 @@ export default function PocketPage() {
                 <p className="text-gray-300 text-xs">เงินประทังชีวิต</p>
               </div>
             </div>
-            {/* แสดงยอดเงินจริง */}
-            <div className={`text-2xl font-semibold ${balance < 0 ? 'text-red-500' : 'text-gray-600'}`}>
-              {balance.toLocaleString()}
+            {/* แสดงยอดเงินจริง (BigInt) */}
+            <div className={`text-2xl font-semibold overflow-hidden text-ellipsis ${balance < BigInt(0) ? 'text-red-500' : 'text-gray-600'}`}>
+              {formatMoney(balance)}
             </div>
           </div>
         </div>
@@ -138,15 +155,15 @@ export default function PocketPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="text-xs text-gray-500 mb-1">รวมรายรับ ( บาท )</p>
-            <p className="text-lg font-semibold text-green-500">{totalIncome.toLocaleString()}</p>
+            <p className="text-lg font-semibold text-green-500 truncate">{formatMoney(totalIncome)}</p>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="text-xs text-gray-500 mb-1">รวมรายจ่าย ( บาท )</p>
-            <p className="text-lg font-semibold text-red-400">{totalExpense.toLocaleString()}</p>
+            <p className="text-lg font-semibold text-red-400 truncate">{formatMoney(totalExpense)}</p>
           </div>
         </div>
 
-        {/* --- Action Buttons (กดแล้วเปิด Modal) --- */}
+        {/* --- Action Buttons --- */}
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => openModal('income')}
@@ -176,22 +193,22 @@ export default function PocketPage() {
             ) : (
               transactions.map((item) => (
                 <div key={item.id} className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 flex items-center justify-between shadow-sm">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-white rounded-2xl">
+                  <div className="flex items-center space-x-4 overflow-hidden">
+                    <div className="p-3 bg-white rounded-2xl flex-shrink-0">
                       {item.type === 'income' ? (
                         <PlusCircle className="w-6 h-6 text-green-500" />
                       ) : (
                         <MinusCircle className="w-6 h-6 text-red-500" />
                       )}
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-800 text-sm">{item.title}</p>
-                      <p className={`text-sm ${item.type === 'income' ? 'text-green-500' : 'text-red-400'}`}>
-                        {item.type === 'income' ? '+' : '-'} {item.amount.toLocaleString()} บาท
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-800 text-sm truncate">{item.title}</p>
+                      <p className={`text-sm truncate ${item.type === 'income' ? 'text-green-500' : 'text-red-400'}`}>
+                        {item.type === 'income' ? '+' : '-'} {formatMoney(item.amount)} บาท
                       </p>
                     </div>
                   </div>
-                  <span className="text-[10px] text-gray-400 self-start mt-1">{item.time}</span>
+                  <span className="text-[10px] text-gray-400 self-start mt-1 flex-shrink-0 ml-2">{item.time}</span>
                 </div>
               ))
             )}
@@ -199,7 +216,7 @@ export default function PocketPage() {
         </div>
       </div>
 
-      {/* --- MODAL POPUP (หน้าต่างกรอกข้อมูล) --- */}
+      {/* --- MODAL POPUP --- */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
@@ -227,11 +244,14 @@ export default function PocketPage() {
               
               <div>
                 <label className="text-xs text-gray-500 ml-1">จำนวนเงิน</label>
+                {/* แก้ไข 2: ใช้ type="text" เพื่อรองรับเลขยาวๆ และใช้ onChange คุมให้พิมพ์ได้แค่เลข */}
                 <input 
-                  type="number" 
+                  type="text" 
+                  inputMode="numeric" 
+                  pattern="[0-9]*"
                   value={inputAmount}
-                  onChange={(e) => setInputAmount(e.target.value)}
-                  placeholder="0.00"
+                  onChange={handleAmountChange}
+                  placeholder="0"
                   className="w-full bg-gray-50 p-3 rounded-xl text-gray-800 outline-none focus:ring-2 focus:ring-cyan-200"
                 />
               </div>
