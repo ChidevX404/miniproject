@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+[MINI PROJECT | Web Application Development]
 
-## Getting Started
 
-First, run the development server:
+🎯 เป้าหมายของโครงงาน
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+พัฒนา Web Application ตามแนวคิด CRUD Operations
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ออกแบบระบบบันทึกข้อมูลทางการเงินที่ใช้งานง่าย
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+สร้างระบบวิเคราะห์และสรุปรายงานทางการเงินแบบอัตโนมัติ
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ส่งเสริมการวางแผนการเงินและการออมอย่างมีประสิทธิภาพ
 
-## Learn More
+💵 ความสามารถหลักของระบบ (Core Features)
+📒 ระบบบันทึกรายรับ–รายจ่าย
 
-To learn more about Next.js, take a look at the following resources:
+➕ เพิ่มรายการรายรับ (เช่น เงินเดือน ค่าขายของ รายได้เสริม)
+➕ เพิ่มรายการรายจ่าย (เช่น ค่าอาหาร ค่าเดินทาง ค่าน้ำค่าไฟ)
+👀 แสดงรายการทั้งหมดแบบแยกตามวัน/เดือน/ปี
+✏️ แก้ไขข้อมูลรายการย้อนหลัง
+🗑️ ลบรายการที่ไม่ต้องการ
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+🛠️ เทคโนโลยีที่ใช้
 
-## Deploy on Vercel
+Frontend: HTML, CSS, JavaScript
+Backend: (เช่น Node.js / PHP / Python – แล้วแต่การพัฒนา)
+Database: (เช่น MySQL / MongoDB / Firebase)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+📌 หมายเหตุ
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+โครงการนี้จัดทำขึ้นเพื่อเป็นส่วนหนึ่งของรายวิชา Web Application Development (Mini Project)
+มีวัตถุประสงค์เพื่อฝึกออกแบบและพัฒนา Web Application แบบครบวงจร ตั้งแต่การออกแบบฐานข้อมูล การพัฒนา UI/UX ไปจนถึงการสร้างระบบวิเคราะห์ข้อมูลและการแนะนำทางการเงินอัจฉริยะ
