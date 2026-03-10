@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-
+ 
 // ดึงข้อมูลทั้งหมด
 export async function GET() {
   try {
@@ -8,42 +8,74 @@ export async function GET() {
       .from('Transaction')
       .select('*')
       .order('id', { ascending: false });
-
+ 
     if (error) throw error;
-    
+   
     return NextResponse.json(transactions);
   } catch (error) {
     console.error("Fetch Transactions Error:", error);
     return NextResponse.json([]);
   }
 }
-
+ 
 // บันทึกข้อมูลใหม่
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+    let finalImageUrl = body.imageUrl || null;
+ 
+    // ตรวจสอบว่ามีรูปภาพถูกส่งมาเป็น base64 หรือไม่
+    if (finalImageUrl && finalImageUrl.startsWith('data:image')) {
+      const base64Data = finalImageUrl.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, 'base64');
+     
+      const matches = finalImageUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,/);
+      const ext = matches ? matches[1] : 'png';
+      const fileName = `receipt_${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
+ 
+      // อัปโหลดไปยัง bucket ชื่อ 'receipts' (ต้องสร้างใน Supabase Storage ก่อนและเปิดเป็น Public)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('receipts')
+        .upload(fileName, buffer, {
+          contentType: `image/${ext}`,
+          upsert: false
+        });
+ 
+      if (uploadError) {
+        console.error("Upload Image Error:", uploadError);
+        // ถ้าอัปโหลดรูปไม่ผ่าน ให้ค่าว่างไปก่อน (หรือจะ throw error ก็ได้)
+        finalImageUrl = null;
+      } else {
+        // ดึง public URL ของรูปภาพ
+        const { data: publicUrlData } = supabase.storage
+          .from('receipts')
+          .getPublicUrl(fileName);
+       
+        finalImageUrl = publicUrlData.publicUrl;
+      }
+    }
+   
     // บันทึกลง Database
     const { data: newTransaction, error } = await supabase
       .from('Transaction')
       .insert([
         {
           title: body.title,
-          amount: body.amount, 
+          amount: body.amount,
           type: body.type,
           date: body.date,
           time: body.time,
-          userId: body.userId, 
+          userId: body.userId,
           category: body.category || "ทั่วไป", // ถ้าไม่ได้เลือกหมวดหมู่ ให้เป็น "ทั่วไป"
           note: body.note || null,             // โน้ตเพิ่มเติม (ถ้าไม่มีก็เป็น null)
-          imageUrl: body.imageUrl || null,     // รูปภาพ (ถ้าไม่มีก็เป็น null)
+          imageUrl: finalImageUrl,             // รูปภาพ (url จาก bucket หรือ null)
         }
       ])
       .select()
       .single();
-
+ 
     if (error) throw error;
-
+ 
     return NextResponse.json({ success: true, message: 'Saved!', transaction: newTransaction });
   } catch (error) {
     console.error("Create Transaction Error:", error);
