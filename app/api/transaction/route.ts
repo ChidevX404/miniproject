@@ -6,12 +6,41 @@ export async function GET() {
   try {
     const { data: transactions, error } = await supabase
       .from('Transaction')
-      .select('*')
-      .order('id', { ascending: false });
+      .select('*');
  
     if (error) throw error;
    
-    return NextResponse.json(transactions);
+    // เรียงลำดับข้อมูลโดยใช้วันที่และเวลา (ล่าสุดขึ้นก่อน)
+    const sortedTransactions = transactions?.sort((a, b) => {
+      const parseDateTime = (dateStr: string, timeStr: string) => {
+        if (!dateStr) return 0;
+        const parts = dateStr.split('/');
+        if (parts.length !== 3) return 0;
+       
+        const d = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        let y = parseInt(parts[2], 10);
+        if (y > 2500) y -= 543; // แปลง พ.ศ. -> ค.ศ.
+       
+        const timeParts = (timeStr || "00:00").split(':');
+        const hs = parseInt(timeParts[0], 10) || 0;
+        const ms = parseInt(timeParts[1], 10) || 0;
+       
+        return new Date(y, m, d, hs, ms).getTime();
+      };
+ 
+      const timeA = parseDateTime(a.date, a.time);
+      const timeB = parseDateTime(b.date, b.time);
+     
+      // เรียงแบบ Descending (มากไปน้อย = ล่าสุดขึ้นก่อน)
+      // ถ้าเวลาเท่ากัน ให้ใช้ id ในการเรียง (ถ้ามี)
+      if (timeB === timeA) {
+          return String(b.id).localeCompare(String(a.id));
+      }
+      return timeB - timeA;
+    }) || [];
+ 
+    return NextResponse.json(sortedTransactions);
   } catch (error) {
     console.error("Fetch Transactions Error:", error);
     return NextResponse.json([]);
