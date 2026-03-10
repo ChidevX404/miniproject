@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ตารางเก็บข้อมูลผู้ใช้
+model User {
+  id           String        @id @default(cuid())
+  username     String        @unique
+  email        String?
+  password     String
+  name         String
+  phone        String?
+  role         String        @default("user")
+  
+  // 1 User มีได้หลาย Transactions
+  transactions Transaction[] 
+}
+
+// ตารางเก็บประวัติรายรับ-รายจ่าย
+model Transaction {
+  id        String   @id @default(cuid())
+  title     String
+  amount    String   // เก็บเป็น String ไว้ก่อนเพื่อให้รองรับเลข BigInt ได้ง่ายๆ
+  type      String   // 'income' หรือ 'expense'
+  date      String
+  time      String
+  
+  // --------- ฟิลด์ที่เพิ่มมาใหม่ตามโจทย์อาจารย์ ---------
+  category  String   @default("ทั่วไป") // หมวดหมู่ (เช่น อาหาร, เดินทาง, เงินเดือน)
+  note      String?                     // โน้ตเพิ่มเติม (ไม่บังคับกรอก)
+  imageUrl  String?                     // ชื่อไฟล์ หรือ URL รูปภาพที่แนบ (ไม่บังคับแนบ)
+  // ------------------------------------------------
+  
+  // ความสัมพันธ์ (เชื่อมกับตาราง User ด้วย userId)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
