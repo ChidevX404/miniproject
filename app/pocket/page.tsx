@@ -35,6 +35,7 @@ export default function PocketPage() {
   const [inputCategory, setInputCategory] = useState('ทั่วไป');
   const [inputNote, setInputNote] = useState('');
   const [inputImage, setInputImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
  
   // --- LOAD DATA ---
   useEffect(() => {
@@ -105,6 +106,7 @@ export default function PocketPage() {
   const handleSave = async () => {
     if (!inputAmount || !inputTitle) return;
  
+    setIsLoading(true);
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const now = new Date();
  
@@ -138,6 +140,8 @@ export default function PocketPage() {
     } catch (error) {
       console.error("Failed to save:", error);
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setIsLoading(false);
     }
   };
  
@@ -344,11 +348,19 @@ export default function PocketPage() {
  
               <button
                 onClick={handleSave}
+                disabled={isLoading}
                 className={`w-full py-4 mt-2 rounded-xl font-bold text-white shadow-md transition-transform active:scale-95 ${
                   modalType === 'income' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-                }`}
+                } ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                บันทึกข้อมูล
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    กำลังบันทึก...
+                  </div>
+                ) : (
+                  'บันทึกข้อมูล'
+                )}
               </button>
             </div>
  
@@ -375,4 +387,3 @@ export default function PocketPage() {
     </div>
   );
 }
- 
